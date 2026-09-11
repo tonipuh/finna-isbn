@@ -12,5 +12,4 @@ __pycache__
 htmlcov
 tests
 .DS_Store
-README.md
 SPEC.md
