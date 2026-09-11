@@ -1,4 +1,4 @@
-"""Finna REST API client + record normalization (SPEC.md sections 4-5)."""
+"""Finna REST API client + record normalization."""
 
 from __future__ import annotations
 

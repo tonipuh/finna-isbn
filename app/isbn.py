@@ -1,4 +1,4 @@
-"""ISBN normalization, validation and 10<->13 conversion (SPEC.md section 7)."""
+"""ISBN normalization, validation and 10<->13 conversion."""
 
 from __future__ import annotations
 

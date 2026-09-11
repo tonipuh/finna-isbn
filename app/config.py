@@ -1,4 +1,4 @@
-"""Configuration read from environment variables (see SPEC.md section 6)."""
+"""Configuration read from environment variables."""
 
 from __future__ import annotations
 

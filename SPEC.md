@@ -1,9 +1,5 @@
 # Määrittely: `finna-isbn` — ISBN→metadata-mikropalvelu (Finna)
 
-> Itsenäinen määrittely. Toteutetaan omassa repossaan `github.com/tonipuh/finna-isbn`
-> täysin erillisessä ympäristössä. **Ainoa kytkös ulkomaailmaan on GHCR-image +
-> sen dokumentoitu portti/env/kontrakti** — kaikki muu on tässä dokumentissa.
-
 ## 1. Tarkoitus
 Stateless HTTP-mikropalvelu joka ottaa ISBN:n, kysyy **Finnan avoimesta REST-API:sta**
 (Suomen kansalliskirjaston hakupalvelu) ja palauttaa **normalisoidun kirjatietueen**

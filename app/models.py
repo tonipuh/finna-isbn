@@ -1,4 +1,4 @@
-"""Response contract models (SPEC.md section 4)."""
+"""Response contract models."""
 
 from __future__ import annotations
 

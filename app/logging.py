@@ -1,4 +1,4 @@
-"""Structured JSON logging to stdout (SPEC.md section 7). No PII."""
+"""Structured JSON logging to stdout. No PII."""
 
 from __future__ import annotations
 

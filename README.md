@@ -1,21 +1,10 @@
 # finna-isbn
 
-Stateless HTTP microservice that resolves an **ISBN** to a normalized book record
-using the **Finna** open REST API (National Library of Finland). It hides Finna's
-quirks behind a stable, versioned contract.
+Ohut välikerros kirjastosovelluksen (librarian) ja **Finnan** avoimen REST-API:n välissä:
+antaa ISBN:n, saat normalisoidun kirjatietueen. Stateless HTTP, konfiguroidaan
+env-muuttujilla, jaellaan GHCR-imagena.
 
-The only thing consumers depend on is the **GHCR image + its documented port/env/contract**
-— see [SPEC.md](SPEC.md).
-
-## Image
-
-```
-ghcr.io/tonipuh/finna-isbn:<tag>   # multi-arch: linux/amd64 + linux/arm64
-```
-
-Tags: `v1.0.0`, `v1.0`, `v1`, `latest`. Pin an exact tag in production.
-
-## Run
+## Käyttö
 
 ```bash
 docker run --rm -p 8080:8080 \
@@ -23,22 +12,20 @@ docker run --rm -p 8080:8080 \
   ghcr.io/tonipuh/finna-isbn:v1
 ```
 
-`FINNA_USER_AGENT` is the only required variable.
+`FINNA_USER_AGENT` on ainoa pakollinen muuttuja. Image on multi-arch (amd64 + arm64).
 
 ## API
 
-| Method & path | Description |
-|---------------|-------------|
-| `GET /v1/isbn/{isbn}` | Resolve an ISBN-10/13 (hyphens/spaces allowed). `?raw=true` appends the original Finna record. |
+| Metodi & polku | Kuvaus |
+|----------------|--------|
+| `GET /v1/isbn/{isbn}` | ISBN-10/13 (väliviivat sallittu) → kirjatietue. `?raw=true` lisää alkuperäisen Finna-recordin. |
 | `GET /healthz` | Liveness → `200 {"status":"ok"}` |
-| `GET /readyz` | Readiness → `200` if Finna reachable, else `503` |
+| `GET /readyz` | `200` jos Finna tavoitettavissa, muuten `503` |
 | `GET /version` | `{"version","commit","buildTime"}` |
-| `GET /openapi.json` | OpenAPI spec |
-
-### Example
+| `GET /openapi.json` | OpenAPI-speksi |
 
 ```bash
-curl -s "http://localhost:8080/v1/isbn/978-951-0-39265-2" | jq
+curl -s "http://localhost:8080/v1/isbn/978-951-0-39265-2"
 ```
 
 ```json
@@ -59,53 +46,39 @@ curl -s "http://localhost:8080/v1/isbn/978-951-0-39265-2" | jq
 }
 ```
 
-### Errors (JSON body for all)
+Virheet (JSON-body): `400 invalid_isbn`, `404 not_found`, `502 upstream_error`, `504 upstream_timeout`.
 
-| HTTP | `error` | When |
-|------|---------|------|
-| 400 | `invalid_isbn` | ISBN fails length/checksum |
-| 404 | `not_found` | No Finna match |
-| 502 | `upstream_error` | Finna errored / invalid response |
-| 504 | `upstream_timeout` | Finna did not respond within `REQUEST_TIMEOUT_SECONDS` |
+## Konfiguraatio (env)
 
-## Configuration (env)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HTTP_PORT` | `8080` | Listen port |
+| Muuttuja | Oletus | Selitys |
+|----------|--------|---------|
+| `HTTP_PORT` | `8080` | Kuunteluportti |
 | `FINNA_BASE_URL` | `https://api.finna.fi/v1` | Finna REST base |
-| `FINNA_USER_AGENT` | *(required)* | Descriptive User-Agent |
-| `FINNA_LANGUAGE` | `fin` | Language filter (empty = all) |
-| `REQUEST_TIMEOUT_SECONDS` | `10` | Upstream timeout |
-| `CACHE_TTL_SECONDS` | `86400` | ISBN cache TTL (`0` = off) |
-| `CACHE_MAX_ENTRIES` | `10000` | In-memory cache cap |
+| `FINNA_USER_AGENT` | *(pakollinen)* | Kuvaava User-Agent |
+| `FINNA_LANGUAGE` | `fin` | Kielisuodatus (tyhjä = kaikki) |
+| `REQUEST_TIMEOUT_SECONDS` | `10` | Upstream-timeout |
+| `CACHE_TTL_SECONDS` | `86400` | ISBN-cache TTL (`0` = pois) |
+| `CACHE_MAX_ENTRIES` | `10000` | In-memory-cachen katto |
 | `LOG_LEVEL` | `info` | `debug`/`info`/`warn`/`error` |
 
-## How it talks to Finna
-
-- Search: `GET {FINNA_BASE_URL}/search?lookfor=<isbn13>&type=ISN&field[]=…&limit=5&lng=<lang>`
-  (`type=ISN` is VuFind's ISBN/ISSN search, verified against the live API).
-- Best-match selection: among the results, prefer a record whose `cleanIsbn`/`isbns`
-  matches the queried ISBN and whose format is a printed book; fall back to the first result.
-- Cover: use the record's `images[]` (relative → prefixed with `https://www.finna.fi`)
-  when present, otherwise `https://www.finna.fi/Cover/Show?isbn=<isbn13>&size=large`.
-- Metadata is licensed CC0; no API key or registration required. A descriptive
-  User-Agent is expected.
-
-## Development
+## Kehitys
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q
-ruff check app tests
+pytest -q && ruff check app tests
 
-# Run locally
-FINNA_USER_AGENT="finna-isbn/dev (+https://github.com/tonipuh/finna-isbn)" python -m app
+FINNA_USER_AGENT="finna-isbn/dev" python -m app
 ```
 
-## CI/CD
+## Toteutus lyhyesti
 
-`.github/workflows/build.yml` runs lint + tests, then builds and pushes a multi-arch
-image to GHCR on pushes to `main` (`:latest`) and on `v*` tags (`:v1.0.0`, `:v1.0`, `:v1`).
-Build injects `version`/`commit`/`buildTime` (exposed at `/version`).
+- Haku: `GET /search?lookfor=<isbn13>&type=ISN&…&limit=5`. Osumista valitaan se, jonka
+  ISBN täsmää ja formaatti on kirja; muuten ensimmäinen.
+- Kansikuva: recordin `images[]` (→ `https://www.finna.fi`-etuliite) tai fallback
+  `Cover/Show?isbn=<isbn13>`.
+- ISBN-cache in-memory (LRU+TTL), structured JSON -lokit, graceful shutdown SIGTERM:llä.
+- Finnan metadata on CC0; ei API-avainta.
+
+CI ([.github/workflows/build.yml](.github/workflows/build.yml)) ajaa lintin + testit ja
+pushaa multi-arch-imagen GHCR:ään: `main` → `:latest`, `v*`-tagi → `:v1.0.0`/`:v1.0`/`:v1`.

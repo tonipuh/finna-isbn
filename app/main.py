@@ -1,4 +1,4 @@
-"""FastAPI application exposing the versioned ISBN contract (SPEC.md section 4)."""
+"""FastAPI application exposing the versioned ISBN contract."""
 
 from __future__ import annotations
 

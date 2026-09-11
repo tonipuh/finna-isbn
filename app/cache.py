@@ -1,4 +1,4 @@
-"""In-memory LRU + TTL cache (SPEC.md section 7). Stateless service, cache-miss always OK."""
+"""In-memory LRU + TTL cache. Stateless service, cache-miss always OK."""
 
 from __future__ import annotations
 
